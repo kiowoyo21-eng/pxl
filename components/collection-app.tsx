@@ -48,7 +48,7 @@ export default function CollectionApp() {
 
   useEffect(() => {
     let alive = true;
-    if (window.location.hash === '#chat') {
+    if (window.location.hash === '#chat' || window.location.hash === '#photo') {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
     getJson<{ member: Member }>('/api/me')
@@ -130,7 +130,12 @@ export default function CollectionApp() {
   }, [current, loadMembers]);
 
   useEffect(() => {
-    const onPop = () => { setActivePeer(null); setInvitation(null); };
+    const onPop = () => {
+      // A photo viewer uses its own history entry. Browser Back from a photo
+      // returns to #chat without unmounting the ephemeral conversation.
+      if (window.location.hash === '#photo' || window.location.hash === '#chat') return;
+      setActivePeer(null); setInvitation(null);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -142,13 +147,13 @@ export default function CollectionApp() {
   }, [notice]);
 
   const sorted = useMemo(() => {
-    return members.slice().sort((a, b) => {
+    return members.filter((member) => member.id !== current?.id).sort((a, b) => {
       const diff = (interactionCounts.current.get(b.id) || 0) - (interactionCounts.current.get(a.id) || 0);
       if (diff !== 0) return diff;
       return a.created_at.localeCompare(b.created_at) || a.username.localeCompare(b.username);
     });
     // Re-evaluate only on wall return, not with every message; collection coins never jump mid-browse.
-  }, [members, reorderVersion]);
+  }, [members, current?.id, reorderVersion]);
 
   const choosePeer = (member: Member) => {
     if (!current || member.id === current.id) return;
@@ -219,19 +224,17 @@ export default function CollectionApp() {
 
       <div className="roster-grid" aria-label="Character collection">
         {sorted.map((member) => {
-          const isSelf = member.id === current.id;
           const active = onlineIds.has(member.id);
           return <button type="button" key={member.id}
-            className={`character-slot${isSelf ? ' character-self' : ''}${active && !isSelf ? ' can-select' : ''}`}
-            disabled={isSelf} onClick={() => choosePeer(member)}
-            aria-label={isSelf ? `${member.username}, your character` : `${member.username}, ${active ? 'available to chat' : 'not available'}`}>
+            className={`character-slot${active ? ' can-select' : ''}`}
+            onClick={() => choosePeer(member)}
+            aria-label={`${member.username}, ${active ? 'available to chat' : 'not available'}`}>
             <PixelCoin username={member.username} online={active}/>
             <div className="coin-name">{member.username}</div>
-            {isSelf && <span className="self-marker">YOU</span>}
           </button>;
         })}
       </div>
-      {members.length === 0 && <div className="empty-state">Your collection is loading… <button onClick={manualRefresh}>Try again</button></div>}
+      {sorted.length === 0 && <div className="empty-state">No other characters yet. <button type="button" onClick={manualRefresh}>Refresh</button></div>}
     </section>
 
     {notice && <div className="game-toast" role="status"><span className="game-toast-dot"/>{notice}</div>}

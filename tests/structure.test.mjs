@@ -35,7 +35,8 @@ test('game UI has no marketing or token labels, and offline coins notify', () =>
   assert.doesNotMatch(roster, /CHARACTER ARCHIVE|VOL\. 01|COLLECTOR|NO CHAT HISTORY|CHARACTER TOKEN|YOUR TOKEN|\/ TOKEN|Choose your/);
   assert.match(roster, /setNotice\(\`\$\{member\.username\}/);
   assert.match(roster, /role="status"/);
-  assert.match(roster, /disabled=\{isSelf\}/);
+  assert.match(roster, /members\.filter\(\(member\) => member\.id !== current\?\.id\)/);
+  assert.doesNotMatch(roster, /<span className="self-marker">YOU<\/span>/);
 });
 
 test('photo timers are only in post-selection preview, with 3s 10s 20s and one-view expiry', () => {
@@ -72,4 +73,32 @@ test('avatar design and username restrictions are stable', () => {
   assert.match(file('components/pixel-coin.tsx'), /coin-presence/);
   assert.match(file('lib/validation.ts'), /\{1,3\}/);
   assert.match(file('lib/validation.ts'), /\{6\}/);
+});
+
+
+test('camera and microphone are not blocked by Permissions-Policy', () => {
+  const config = file('next.config.ts');
+  assert.match(config, /camera=\(self\), microphone=\(self\)/);
+  assert.doesNotMatch(config, /camera=\(\), microphone=\(\)/);
+});
+
+test('photo picker offers Take Photo and Upload Photo, camera uses user-granted capture', () => {
+  const chat = file('components/ephemeral-chat.tsx');
+  assert.match(chat, /Take Photo/);
+  assert.match(chat, /Upload Photo/);
+  assert.match(chat, /navigator\.mediaDevices\.getUserMedia\(\{ audio: false, video:/);
+  assert.match(chat, /<video ref=\{cameraVideo\}.*playsInline/);
+  assert.match(chat, /cameraStream\.current\?\.getTracks\(\)/);
+  assert.match(chat, /setPhoto\(\{ blob, url \}\)/);
+  assert.match(chat, /Microphone permission denied/);
+  assert.match(chat, /disabled=\{!connected \|\| sending\} onPointerDown=\{micDown\}/);
+});
+
+test('disappearing photo viewing preserves chat and supports back gesture', () => {
+  const chat = file('components/ephemeral-chat.tsx');
+  const roster = file('components/collection-app.tsx');
+  assert.match(chat, /window\.history\.pushState\(\{ pxlOverlay: 'photo' \}, '', '#photo'\)/);
+  assert.match(chat, /onPhotoHistoryBack/);
+  assert.match(chat, /event\.preventDefault\(\)/);
+  assert.match(roster, /if \(window\.location\.hash === '#photo' \|\| window\.location\.hash === '#chat'\) return/);
 });

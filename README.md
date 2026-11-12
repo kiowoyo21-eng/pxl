@@ -4,7 +4,7 @@
 
 **This is a ZIP handoff.** This revision does not write to GitHub, Vercel, or Supabase. It can be installed in your existing PXL repository or another account. The ZIP contains no live credentials.
 
-## PXL V1.3 — game UI + ephemeral media
+## PXL V1.4 — camera and chat continuity fixes
 
 - **Rebranded as PXL** across login, gallery, chat, error screen, web metadata, browser title, and visual preview.
 - **Installable web app manifest** at `app/manifest.ts`, `display: standalone`, scope `/`, dark theme `#0e1621`.
@@ -24,11 +24,11 @@ After deployment to **HTTPS**, open the website:
 
 **Offline behavior:** PXL requires an active connection for login, loading the roster, Realtime Presence, and live chat. **No offline chat, chat queue, chat caching, or notifications.** A PWA can still be installed even if live app functionality requires internet. If the browser itself retains HTTP or operational traces, a service worker cannot guarantee their erasure; this app sets `Cache-Control: no-store` and does not add its own caches.
 
-### New in V1.3
+### Core features retained from V1.3
 
 - **Game-first roster:** removed `Choose your character`, counters, `CHARACTER ARCHIVE / VOL. 01`, `COLLECTOR`, `10/TOKEN` / `CHARACTER TOKEN` / `YOUR TOKEN`, footer marketing and chat-history notices. Coin sprites, usernames, presence dots, sorting, PIN login and PWA stay intact.
-- **Offline tap feedback:** gray-dot coins show a 2.6-second toast; no chat opens. Own coin is still disabled.
-- **Disappearing photos:** select from camera/gallery, then a full-photo preview opens. A *small lower-left timer control* appears only after selection; choose 3, 10, or 20 seconds (default 10s). Recipient taps to view once. The timer begins upon opening; closing, backgrounding or expiry removes the photo from PXL memory and notifies sender when the peer connection is active. No image URL is uploaded to cloud storage.
+- **Offline tap feedback:** gray-dot coins show a 2.6-second toast; no chat opens. The signed-in user is not shown as a coin.
+- **Disappearing photos:** choose **Take Photo** (live camera/shutter) or **Upload Photo** (gallery), then a full-photo preview opens. A *small lower-left timer control* appears only after selection; choose 3, 10, or 20 seconds (default 10s). Recipient taps to view once. The timer begins upon opening; closing, backgrounding or expiry removes the photo from PXL memory and notifies sender when the peer connection is active. No image URL is uploaded to cloud storage.
 - **Voice messages:** on touch devices, press and hold the mic, release to send, slide left to cancel; on desktop click the mic to start/stop. Recording is capped at 60 seconds. Recipients can replay the audio while that chat stays open. Voice blobs and microphone tracks are released on Back/refresh/close.
 - **Media transmission:** photos and voice go over encrypted **WebRTC DataChannels** in 16 KB chunks. Supabase Realtime Broadcast is used for temporary SDP/ICE signaling, and the original text chat remains Broadcast-based. The system uses no media database, Storage bucket, uploads or offline queue.
 - **Compatibility:** a WebRTC connection must be established on both clients before attachments can be sent; text can work even when media P2P fails. Only a public STUN server is configured; some mobile-carrier/corporate NATs require TURN. No TURN service or persisted media relay is included in this ZIP.
@@ -37,7 +37,7 @@ After deployment to **HTTPS**, open the website:
 
 - Next.js 16 / React 19 / TypeScript and responsive dark UI (`#0e1621`, `#17212b`, `#232e3c`, `#f5f5f5`, `#5288c1`).
 - Deterministic 16-bit-inspired pixel characters minted inside metallic-rim coins, with colorful centers. Username is the seed, so the sprite is stable across visits.
-- Discreet green/gray presence dot **only**, no visible online/offline labels. Your coin is labeled `YOU` and cannot be selected. Offline characters remain visible and tapping one shows a brief unavailable toast.
+- Discreet green/gray presence dot **only**, no visible online/offline labels. Your own coin is **not shown in the roster**. Offline characters remain visible and tapping one shows a brief unavailable toast.
 - In-memory frequent-contact ordering **per loaded page**. Successful sent/received messages increment it. Sorting changes after returning to the wall and completely resets on browser refresh. No user-contact metadata in the database or browser storage.
 - Auto-join/create username flow (case insensitive, **1–3 letters A–Z**); 6-digit PIN login; server-side HMAC pepper + bcrypt hashing; `HttpOnly`, `SameSite=Lax`, `Secure` (production) 7-day session cookie; 5 wrong PIN attempts lock the account for 15 minutes.
 - Admin-only PIN reset CLI that revokes existing sessions.
@@ -119,14 +119,29 @@ PREVIEW.html     standalone, nonfunctional visual preview
 
 **Dependencies are exact-version pinned, including Next.js 16.4.6.** This offline build environment could not reach npm, so a verified `package-lock.json` and installed-dependency build could not be generated. Run `npm install` in a connected environment to resolve the dependency tree and generate the lockfile, then commit/retain that lockfile in your other account before production deployment. The included local smoke tests do not substitute for integration testing with your new Supabase project.
 
-### V1.3 validation checklist (two separate devices/tabs)
+### V1.4 validation checklist (two separate devices/tabs)
 
-1. Confirm username + PIN registration/login works, then open two accounts with both tabs visible.
+1. Confirm username + PIN registration/login works, then open two accounts with both tabs visible. Your own character must **not** be included in the coin grid.
 2. Gray-dot coin: tap it, check toast appears without changing page. Green-dot coin: tap, recipient accepts invite.
 3. Send/receive text; go Back and re-open — no old messages. Refresh — in-memory contact ranking also resets.
-4. Choose an image; verify the timer popup is **only** in photo preview, select 3s / 10s / 20s, then send. Receiver taps once, timer counts down; after expiry it cannot be reopened. The sender sees the photo placeholder disappear when expiration is received.
-5. Start a voice message, release/stop to send. Play twice in receiver chat. Verify return-to-roster and refresh erase all audio playback URLs.
-6. Deny microphone permission, switch tabs while viewing a timed photo, and test on iOS Safari and Android Chrome. Test across different networks, including mobile data; without TURN, media may not connect on some networks.
+4. Open Photo options and verify **Take Photo** (requests browser camera permission, previews live video, shutter captures) and **Upload Photo** (gallery selector). Choose an image; verify the timer popup is **only** in photo preview, select 3s / 10s / 20s, then send. Receiver taps once, timer counts down; after expiry it cannot be reopened. The sender sees the photo placeholder disappear when expiration is received.
+5. Start a voice message; verify browser microphone permission is requested on first access (HTTPS required). Release/stop to send. Play twice in receiver chat. Verify return-to-roster and refresh erase all audio playback URLs.
+6. Deny microphone/camera permission to verify clear errors; open a received photo and use the phone Back gesture to close the viewer without losing the chat; switch tabs while viewing a timed photo and test on iOS Safari and Android Chrome. Test across different networks, including mobile data; without TURN, media may not connect on some networks.
 7. Test `npm test`, `npm run typecheck`, and `npm run build` with installed dependencies. The authoring environment could run static/syntax tests but not download npm packages or perform a real two-client Supabase/WebRTC end-to-end test.
 
-**No new Supabase migration is needed for V1.3.** Media is transported peer-to-peer and never inserted into a new table. Do not create an image/voice Storage bucket for this feature.
+**No new Supabase migration is needed for V1.4.** Media is transported peer-to-peer and never inserted into a new table. Do not create an image/voice Storage bucket for this feature.
+
+
+### V1.4 targeted corrections (November 12, 2026)
+
+- The **signed-in user is excluded entirely** from the character collection grid. Username remains visible in the top bar as an account indicator only.
+- The chat's attachment icon opens two choices: **Take Photo** and **Upload Photo**. Take Photo requests the device camera directly on the user's tap, opens a live preview (with front/back flip), captures into a temporary JPEG Blob, closes the camera stream and proceeds to the existing compact 3s / 10s / 20s post-selection timer.
+- `Permissions-Policy` now allows this same-origin app to use **camera and microphone** (`camera=(self), microphone=(self)`); it previously disabled both. Browser-level permission prompts appear on first use, unless previously granted or blocked. HTTPS and device support remain required.
+- The disappearing-photo viewer opens with an **in-page history entry**. Browser Back/swipe-back closes and expires the photo **without exiting the chat**, while chat exit still wipes all messages and media. No image data is placed in browser history.
+- No schema changes or new persistence. The application still does not retain chat, photo or voice content.
+
+#### V1.4 rollout
+
+If you have an existing GitHub `pxl` repo: extract the **patch-only** ZIP into the repository root, replacing the listed source files. Review the diff and deploy. There are no new environment variables or SQL migrations. Make sure the new deployment actually receives the updated Permissions-Policy response header; existing PWA installations may need a normal refresh after redeploy.
+
+**Testing limits:** The authored ZIP passed local structural tests and TypeScript parser checks, but a complete Next.js production build and real microphone/camera/WebRTC test require installed npm dependencies, HTTPS and two real devices. Media can still fail without a TURN relay across restrictive networks.

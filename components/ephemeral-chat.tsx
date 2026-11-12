@@ -93,6 +93,10 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [photo, setPhoto] = useState<PendingPhoto | null>(null);
+  const [attachmentMenu, setAttachmentMenu] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraBusy, setCameraBusy] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
   const [duration, setDuration] = useState<PhotoDuration>(10);
   const [timerMenu, setTimerMenu] = useState(false);
   const [viewing, setViewing] = useState<{ id: string; url: string; expiresAt: number } | null>(null);
@@ -118,6 +122,9 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
   const alive = useRef(true);
   const bottom = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
+  const cameraVideo = useRef<HTMLVideoElement>(null);
+  const cameraStream = useRef<MediaStream | null>(null);
+  const cameraBusyRef = useRef(false);
 
   const revoke = useCallback((url: string | undefined) => {
     if (url && urls.current.has(url)) {
@@ -139,6 +146,10 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
     if (viewingRef.current?.id === id) {
       viewingRef.current = null;
       setViewing(null);
+      // Close only the photo's history entry; never navigate away from the chat.
+      if (window.location.hash === '#photo' && window.history.state?.pxlOverlay === 'photo') {
+        window.history.back();
+      }
     }
     if (notify) transport.current?.notifyExpired(id);
   }, [revoke]);
@@ -221,6 +232,9 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
         recorderRef.current.stop();
       }
       streamRef.current?.getTracks().forEach((track) => track.stop());
+      cameraStream.current?.getTracks().forEach((track) => track.stop());
+      cameraStream.current = null;
+      if (cameraVideo.current) cameraVideo.current.srcObject = null;
       if (recordingTimeout.current) clearTimeout(recordingTimeout.current);
       photoRef.current && URL.revokeObjectURL(photoRef.current.url);
       urls.current.forEach((url) => URL.revokeObjectURL(url));
@@ -237,6 +251,25 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
     if (viewing?.url) retained.add(viewing.url);
     for (const url of urls.current) if (!retained.has(url)) revoke(url);
   }, [messages, viewing, revoke]);
+
+  // Opening and closing the photo is a modal-only navigation state. A mobile
+  // swipe-back from #photo must expire the image, not clear the conversation.
+  useEffect(() => {
+    const onPhotoHistoryBack = () => {
+      if (viewingRef.current && window.location.hash !== '#photo') {
+        expirePhoto(viewingRef.current.id, true);
+      }
+    };
+    window.addEventListener('popstate', onPhotoHistoryBack);
+    return () => window.removeEventListener('popstate', onPhotoHistoryBack);
+  }, [expirePhoto]);
+
+  // Video preview is attached after camera permission is granted and the dialog mounts.
+  useEffect(() => {
+    if (!cameraOpen || !cameraStream.current || !cameraVideo.current) return;
+    cameraVideo.current.srcObject = cameraStream.current;
+    void cameraVideo.current.play().catch(() => setError('Could not start the camera preview.'));
+  }, [cameraOpen]);
 
   useEffect(() => { photoRef.current = photo; }, [photo]);
   useEffect(() => { viewingRef.current = viewing; }, [viewing]);
@@ -280,6 +313,77 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
     finally { if (alive.current) setSending(false); }
   };
 
+  const closeCamera = () => {
+    cameraStream.current?.getTracks().forEach((track) => track.stop());
+    cameraStream.current = null;
+    if (cameraVideo.current) cameraVideo.current.srcObject = null;
+    setCameraOpen(false);
+    setCameraBusy(false);
+    cameraBusyRef.current = false;
+  };
+
+  const openCamera = async (facing: 'environment' | 'user' = 'environment') => {
+    if (cameraBusyRef.current) return;
+    setAttachmentMenu(false);
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setError('Camera requires HTTPS and a browser that supports camera access.');
+      return;
+    }
+    cameraBusyRef.current = true;
+    setCameraBusy(true);
+    // Release a previous camera track before switching between front and back.
+    cameraStream.current?.getTracks().forEach((track) => track.stop());
+    cameraStream.current = null;
+    try {
+      // This is called directly by the user's Take Photo button: browser asks permission here.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing } } });
+      if (!alive.current) { stream.getTracks().forEach((track) => track.stop()); return; }
+      cameraStream.current = stream;
+      setCameraFacing(facing);
+      setCameraOpen(true);
+      setError('');
+      if (cameraVideo.current) {
+        cameraVideo.current.srcObject = stream;
+        await cameraVideo.current.play().catch(() => {});
+      }
+    } catch (err) {
+      if (alive.current) setError(err instanceof DOMException && err.name === 'NotAllowedError'
+        ? 'Camera permission denied. Allow Camera for PXL in your browser settings.'
+        : 'Camera unavailable. Check browser permissions, HTTPS and camera access.');
+      setCameraOpen(false);
+    } finally {
+      cameraBusyRef.current = false;
+      if (alive.current) setCameraBusy(false);
+    }
+  };
+
+  const takePhoto = async () => {
+    const video = cameraVideo.current;
+    if (!video || !video.videoWidth || !video.videoHeight || !cameraStream.current) {
+      setError('Camera is still starting. Try again.'); return;
+    }
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 1600 / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) { setError('Camera capture is unavailable.'); return; }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.78));
+    canvas.width = 0;
+    canvas.height = 0;
+    if (!blob || blob.size > 3 * 1024 * 1024) { setError('Photo could not be captured.'); return; }
+    if (!alive.current) return;
+    closeCamera();
+    if (photoRef.current) URL.revokeObjectURL(photoRef.current.url);
+    const url = URL.createObjectURL(blob);
+    photoRef.current = { blob, url };
+    setPhoto({ blob, url });
+    setDuration(10);
+    setTimerMenu(false);
+    setError('');
+  };
+
   const choosePhoto = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -320,13 +424,12 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setError('Microphone recording is not supported by this browser.'); return;
     }
-    const fromHold = touchHeld.current;
     startingRecorder.current = true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!alive.current || !transport.current?.ready() || (fromHold && (!touchHeld.current || cancelRecording.current))) {
+      if (!alive.current || !transport.current?.ready()) {
         stream.getTracks().forEach((track) => track.stop());
-        if (alive.current && !(fromHold && !touchHeld.current)) setError('Media connection unavailable. Try again when both chats are open.');
+        if (alive.current) setError('Media connection unavailable. Try again when both chats are open.');
         return;
       }
       const mime = recordingMime();
@@ -357,7 +460,9 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
       setRecording(true);
       setError('');
       recordingTimeout.current = setTimeout(() => finishRecording(), MAX_RECORDING_MS);
-    } catch { if (alive.current) setError('Microphone access denied or unavailable.'); }
+    } catch (err) { if (alive.current) setError(err instanceof DOMException && err.name === 'NotAllowedError'
+      ? 'Microphone permission denied. Allow Microphone for PXL in browser settings.'
+      : 'Microphone unavailable. Check browser permissions and HTTPS.'); }
     finally { startingRecorder.current = false; }
   }, [finishRecording, online, peerReady, roomReady, sendMedia]);
 
@@ -389,6 +494,8 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
     if (message.kind !== 'photo' || !message.url || message.viewed || message.fromId === current.id) return;
     const active = { id: message.id, url: message.url, expiresAt: Date.now() + (message.duration ?? 10) * 1000 };
     viewingRef.current = active;
+    // Adds a history entry without loading a new document or losing the chat.
+    if (window.location.hash === '#chat') window.history.pushState({ pxlOverlay: 'photo' }, '', '#photo');
     setViewing(active);
     setMessages((list) => list.map((item) => item.id === message.id && 'kind' in item ? { ...item, viewed: true } : item));
   };
@@ -411,7 +518,7 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
               {'kind' in message ? message.kind === 'photo' ?
                 (message.fromId === current.id
                   ? <span className="photo-token"><Camera size={16}/> Photo · {message.duration}s</span>
-                  : <button type="button" className="photo-token" onClick={() => openPhoto(message)} disabled={!message.url || message.viewed}>
+                  : <button type="button" className="photo-token" onClick={(event) => { event.preventDefault(); event.stopPropagation(); openPhoto(message); }} disabled={!message.url || message.viewed}>
                     <Camera size={16}/> {message.viewed ? 'Viewed' : `View photo · ${message.duration}s`}</button>)
                 : <VoiceBubble url={message.url}/>
                 : <span className="message-text">{message.text}</span>}
@@ -425,16 +532,34 @@ export default function EphemeralChat({ current, peer, online, onBack, onInterac
         {error && <p className="chat-error" role="alert">{error}</p>}
         {recording && <div className="record-status"><span className="record-dot"/> Recording {recordSeconds}s / 60s · slide left to cancel <button type="button" onClick={() => finishRecording(true)}>Cancel</button></div>}
         <form className="compose-row" onSubmit={sendText}>
-          <input ref={picker} className="hidden-file" type="file" accept="image/*" aria-label="Select photo" onChange={(event) => { void choosePhoto(event); }}/>
-          <button type="button" className="compose-attach" disabled={!connected || sending} onClick={() => picker.current?.click()} aria-label="Choose a photo"><ImagePlus size={19}/></button>
+          <input ref={picker} className="hidden-file" type="file" accept="image/*" aria-label="Upload photo from gallery" onChange={(event) => { void choosePhoto(event); }}/>
+          <div className="compose-attachment-wrap">
+            <button type="button" className="compose-attach" disabled={!connected || sending} onClick={() => setAttachmentMenu((open) => !open)} aria-label="Photo options" aria-expanded={attachmentMenu}><ImagePlus size={19}/></button>
+            {attachmentMenu && <div className="attach-menu" role="group" aria-label="Photo options">
+              <button type="button" disabled={cameraBusy} onClick={() => { void openCamera(); }}><Camera size={17}/> Take Photo</button>
+              <button type="button" onClick={() => { setAttachmentMenu(false); picker.current?.click(); }}><ImagePlus size={17}/> Upload Photo</button>
+            </div>}
+          </div>
           <input aria-label="Message" value={text} onChange={(event) => setText(event.target.value)} placeholder={connected ? 'Message…' : 'Waiting for connection…'} maxLength={2000} disabled={!connected || sending || recording} autoComplete="off" />
           {text.trim()
             ? <button type="submit" className="compose-send" aria-label="Send message" disabled={!connected || sending}><Send size={18}/></button>
             : <button type="button" className={`compose-mic${recording ? ' is-recording' : ''}`} aria-label={recording ? 'Stop and send voice recording' : 'Record voice message'} title="Hold to record on phone; tap to start/stop on desktop"
-                disabled={!connected || !mediaReady || sending} onPointerDown={micDown} onPointerMove={micMove} onPointerUp={micUp} onPointerCancel={() => { touchOrigin.current = null; touchHeld.current = false; finishRecording(true); }} onClick={micClick}><Mic size={19}/></button>}
+                disabled={!connected || sending} onPointerDown={micDown} onPointerMove={micMove} onPointerUp={micUp} onPointerCancel={() => { touchOrigin.current = null; touchHeld.current = false; finishRecording(true); }} onClick={micClick}><Mic size={19}/></button>}
         </form>
       </div>
     </div></div>
+
+    {cameraOpen && <div className="camera-capture-overlay" role="dialog" aria-modal="true" aria-label="Take photo">
+      <div className="camera-capture-shell">
+        <div className="camera-capture-top"><button type="button" aria-label="Cancel camera" onClick={closeCamera}><X size={22}/></button><strong>Take Photo</strong><span/></div>
+        <video ref={cameraVideo} className="camera-capture-video" autoPlay playsInline muted aria-label="Live camera preview"/>
+        <div className="camera-capture-actions">
+          <button type="button" className="camera-switch-button" onClick={() => { void openCamera(cameraFacing === 'environment' ? 'user' : 'environment'); }} disabled={cameraBusy} aria-label="Switch camera">Flip camera</button>
+          <button type="button" className="camera-shutter-button" onClick={() => { void takePhoto(); }} aria-label="Capture photo"><span/></button>
+          <span className="camera-action-spacer"/>
+        </div>
+      </div>
+    </div>}
 
     {photo && <div className="photo-preview-overlay" role="dialog" aria-modal="true" aria-label="Photo preview">
       <div className="photo-preview-shell">

@@ -1,0 +1,36 @@
+PXL V1.4 TARGETED PATCH — 2026-11-12
+==================================
+For repository: https://github.com/kiowoyo21-eng/pxl
+Patch is based on the exact PXL V1.3 source currently in public main.
+
+WHAT CHANGED
+- Exclude your own member ID from the character roster.
+- Add compact Take Photo / Upload Photo menu; Take Photo opens live camera view and shutter.
+- Allow camera + microphone permissions via Permissions-Policy (was blocking both).
+- Keep chat mounted when photo viewer is opened or closed with browser Back.
+- Update offline visual preview, tests, README and QA notes.
+
+HOW TO APPLY
+Extract this ZIP to the root of a checkout of the pxl GitHub repository,
+overwriting the matching files. Review the changes, then commit/push from a
+GitHub account with write permission (this connected account is read-only).
+This is a source patch, NOT an uploadable Vercel ZIP artifact.
+
+No database migration, environment-variable change, PIN hash change, or
+Supabase/Vercel account operation is required.
+
+After redeploy verify on HTTPS:
+1. Own character no longer appears on the roster.
+2. Take Photo asks for camera permission on first use and shows live preview;
+   Upload Photo opens gallery; send after selecting 3/10/20s.
+3. Microphone asks for permission when you press the mic and both users joined.
+4. Opening photo and phone's Back gesture do not reset text/chat messages.
+5. Leaving the chat still clears messages, photos and audio.
+
+Full npm build and live two-device media QA were not possible here.
+Run: npm install && npm test && npm run typecheck && npm run build
+Watch Vercel for deploy errors, and verify that the updated response headers
+include camera=(self), microphone=(self).
+
+Media transport may require TURN across restrictive NATs. Basic public
+Broadcast cannot guarantee private or tamper-proof chat.
