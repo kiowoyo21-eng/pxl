@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { ArrowLeft, ArrowRight, ChevronRight, CircleHelp, Compass, LogOut, RefreshCw, Send, Shield, Sparkles, X } from 'lucide-react';
+import { ArrowRight, CircleHelp, LogOut, RefreshCw, X } from 'lucide-react';
 import { getBrowserRealtime } from '@/lib/supabase-browser';
-import type { ChatMessage, Member } from '@/lib/types';
+import type { Member } from '@/lib/types';
 import PixelCoin from './pixel-coin';
 import PwaInstallButton from './pwa-install-button';
+import EphemeralChat from './ephemeral-chat';
 
 type UiStage = 'name' | 'pin-login' | 'pin-register';
 type InvitePayload = { to: string; from: string };
@@ -28,6 +29,7 @@ export default function CollectionApp() {
   const [activePeer, setActivePeer] = useState<Member | null>(null);
   const [invitation, setInvitation] = useState<Member | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [notice, setNotice] = useState('');
   const [reorderVersion, setReorderVersion] = useState(0);
   const interactionCounts = useRef<Map<string, number>>(new Map());
   const membersRef = useRef<Member[]>([]);
@@ -133,6 +135,12 @@ export default function CollectionApp() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(''), 2600);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
+
   const sorted = useMemo(() => {
     return members.slice().sort((a, b) => {
       const diff = (interactionCounts.current.get(b.id) || 0) - (interactionCounts.current.get(a.id) || 0);
@@ -143,7 +151,8 @@ export default function CollectionApp() {
   }, [members, reorderVersion]);
 
   const choosePeer = (member: Member) => {
-    if (!current || member.id === current.id || !onlineIds.has(member.id)) return;
+    if (!current || member.id === current.id) return;
+    if (!onlineIds.has(member.id)) { setNotice(`${member.username} isn't around right now.`); return; }
     setInvitation(null);
     setActivePeer(member);
     if (window.location.hash !== '#chat') window.history.pushState({ collectionChat: true }, '', '#chat');
@@ -186,66 +195,53 @@ export default function CollectionApp() {
   if (!current) return <SignIn onSuccess={setCurrent} />;
 
   if (activePeer) {
-    return <ChatView key={activePeer.id} current={current} peer={activePeer}
+    return <EphemeralChat key={activePeer.id} current={current} peer={activePeer}
       online={onlineIds.has(activePeer.id)} onBack={closeChat} onInteraction={countInteraction}
       onInvite={sendInvite} />;
   }
 
-  const onlineCount = members.filter((m) => onlineIds.has(m.id)).length;
   return <main className="app-shell">
     <header className="main-nav">
       <div className="brand-row">
         <div className="brand-emblem"><span>✦</span></div>
-        <div><div className="brand-title">PXL<span className="brand-point">.</span></div>
-          <div className="brand-caption">CHARACTER ARCHIVE / VOL. 01</div></div>
+        <div className="brand-title">PXL<span className="brand-point">.</span></div>
       </div>
       <div className="nav-actions">
         <PwaInstallButton />
-        <span className="nav-you" title="Current character">COLLECTOR <strong>{current.username}</strong></span>
+        <span className="nav-you" title="Current character"><strong>{current.username}</strong></span>
         <button type="button" className="icon-action" aria-label="Refresh collection" title="Refresh collection" onClick={manualRefresh} disabled={refreshing}><RefreshCw size={17} className={refreshing ? 'spin' : ''}/></button>
         <button type="button" className="icon-action" aria-label="Log out" title="Log out" onClick={logOut}><LogOut size={17}/></button>
       </div>
     </header>
 
     <section className="collection-content">
-      <div className="eyebrow"><span className="eyebrow-line"/> A SMALL UNIVERSE OF CHARACTERS <span className="eyebrow-line"/></div>
-      <h1 className="collection-title">Choose your <em>character.</em></h1>
-      <p className="collection-subtitle">Every token holds a story. Find a familiar face.</p>
-      <div className="collection-meta">
-        <span><Compass size={14}/> {members.length} COLLECTED</span>
-        <span className="meta-separator"/>
-        <span><span className="tiny-dot green"/>{connection === 'connected' ? `${onlineCount} PRESENT` : 'CONNECTING'}</span>
-      </div>
-
       {connection === 'disconnected' && <div className="connection-warning" role="alert">Realtime connection unavailable. Status dots and chats may not work until reconnected.</div>}
 
       <div className="roster-grid" aria-label="Character collection">
-        {sorted.map((member, index) => {
+        {sorted.map((member) => {
           const isSelf = member.id === current.id;
           const active = onlineIds.has(member.id);
           return <button type="button" key={member.id}
             className={`character-slot${isSelf ? ' character-self' : ''}${active && !isSelf ? ' can-select' : ''}`}
-            disabled={isSelf || !active} onClick={() => choosePeer(member)}
+            disabled={isSelf} onClick={() => choosePeer(member)}
             aria-label={isSelf ? `${member.username}, your character` : `${member.username}, ${active ? 'available to chat' : 'not available'}`}>
-            <div className="slot-index">{String(index + 1).padStart(2, '0')}<span> / TOKEN</span></div>
             <PixelCoin username={member.username} online={active}/>
             <div className="coin-name">{member.username}</div>
-            <div className="coin-subline">{isSelf ? 'YOUR TOKEN' : 'CHARACTER TOKEN'}</div>
             {isSelf && <span className="self-marker">YOU</span>}
           </button>;
         })}
       </div>
       {members.length === 0 && <div className="empty-state">Your collection is loading… <button onClick={manualRefresh}>Try again</button></div>}
-      <footer className="collection-footer"><span>EST. 2026 · A LITTLE CORNER OF THE INTERNET</span><span><Shield size={13}/> NO CHAT HISTORY</span></footer>
     </section>
 
+    {notice && <div className="game-toast" role="status"><span className="game-toast-dot"/>{notice}</div>}
     {invitation && <div className="invite-overlay" role="dialog" aria-modal="true" aria-label="Character invitation">
       <div className="invite-card">
         <button className="invite-dismiss" onClick={() => setInvitation(null)} aria-label="Dismiss invite"><X size={18}/></button>
         <div className="invite-mini"><PixelCoin username={invitation.username} online={true}/></div>
         <span className="section-label">ANOTHER CHARACTER IS HERE</span>
         <h2>{invitation.username} wants to connect.</h2>
-        <p>A temporary conversation. Nothing is saved in your chat history.</p>
+        <p>Ready to join?</p>
         <div className="invite-actions"><button onClick={() => setInvitation(null)} className="btn-quiet">Not now</button><button className="btn-primary" onClick={() => choosePeer(invitation)}>Open chat <ArrowRight size={16}/></button></div>
       </div>
     </div>}
@@ -293,13 +289,13 @@ function SignIn({ onSuccess }: { onSuccess: (member: Member) => void }) {
 
   return <main className="auth-page">
     <section className="auth-art">
-      <div className="auth-art-top"><div className="brand-emblem small">✦</div><span>PXL / VOLUME 01</span></div>
+      <div className="auth-art-top"><div className="brand-emblem small">✦</div><span>PXL</span></div>
       <div className="auth-art-main">
         <div className="hero-star hero-star-a">✦</div><div className="hero-star hero-star-b">✧</div>
         <div className="coin-hero coin-hero-left"><PixelCoin username="ACE" size="large"/></div>
         <div className="coin-hero coin-hero-main"><PixelCoin username={username || 'YOU'} size="large" /></div>
         <div className="coin-hero coin-hero-right"><PixelCoin username="XY" size="large"/></div>
-        <div className="auth-art-tag">01 / PXL CHARACTER ARCHIVE</div>
+        
       </div>
       <div className="auth-art-bottom"><h1>A little<br/>world of <i>characters.</i></h1><p>Not another inbox. Just your own corner of the universe.</p></div>
     </section>
@@ -308,7 +304,7 @@ function SignIn({ onSuccess }: { onSuccess: (member: Member) => void }) {
       <div className="auth-install-action"><PwaInstallButton /></div>
       <div className="auth-top-mobile"><div className="brand-emblem small">✦</div><span>PXL</span></div>
       <div className="auth-form-wrap">
-        <div className="section-label">WELCOME TO THE ARCHIVE</div>
+        <div className="section-label">PLAYER ACCESS</div>
         <h2>{stage === 'name' ? 'Claim your character.' : isRegistration ? 'Make it yours.' : 'Welcome back.'}</h2>
         <p>{stage === 'name' ? 'Every character starts with a name. What should we call yours?' : isRegistration ? `A new character called ${username}. Secure it with a 6-digit PIN.` : `Found ${username} in the collection. Enter your PIN to continue.`}</p>
 
@@ -327,118 +323,10 @@ function SignIn({ onSuccess }: { onSuccess: (member: Member) => void }) {
           <button className="big-button" type="submit" disabled={working || pin.length !== 6 || (isRegistration && confirm.length !== 6)}>{working ? 'Just a moment…' : isRegistration ? 'Create character' : 'Enter collection'}<ArrowRight size={18}/></button>
           <div className="auth-pinfo"><CircleHelp size={14}/>{isRegistration ? 'Remember your PIN. Only an administrator can reset it.' : 'Forgot your PIN? Ask the administrator for a reset.'}</div>
         </form>}
-        <div className="auth-footnote"><Sparkles size={14}/> A COLLECTION OF PEOPLE, NOT MESSAGES.</div>
+        
       </div>
-      <div className="auth-copyright">© PXL · PRIVATE SPACE</div>
+      <div className="auth-copyright">© PXL</div>
     </section>
   </main>;
 }
 
-function ChatView({ current, peer, online, onBack, onInteraction, onInvite }: {
-  current: Member;
-  peer: Member;
-  online: boolean;
-  onBack: () => void;
-  onInteraction: (id: string) => void;
-  onInvite: (peer: Member) => void;
-}) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [text, setText] = useState('');
-  const [peerReady, setPeerReady] = useState(false);
-  const [roomReady, setRoomReady] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
-  const roomRef = useRef<RealtimeChannel | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const liveRef = useRef(true);
-
-  useEffect(() => {
-    const db = getBrowserRealtime();
-    const ids = [current.id, peer.id].sort();
-    const channel = db.channel(`the-collection:dm:v1:${ids.join(':')}`, {
-      config: { presence: { key: current.id }, broadcast: { ack: true, self: false } }
-    });
-    liveRef.current = true;
-    roomRef.current = channel;
-
-    channel.on('presence', { event: 'sync' }, () => {
-      if (liveRef.current) setPeerReady(Object.keys(channel.presenceState()).includes(peer.id));
-    });
-    channel.on('broadcast', { event: 'message' }, ({ payload: rawPayload }) => {
-      const payload = rawPayload as Partial<ChatMessage> | undefined;
-      if (!liveRef.current || payload?.fromId !== peer.id || typeof payload.text !== 'string'
-        || payload.text.length === 0 || payload.text.length > 2000 || typeof payload.id !== 'string') return;
-      setMessages((prev) => [...prev, {
-        id: payload.id!, fromId: peer.id, text: payload.text!,
-        sentAt: typeof payload.sentAt === 'number' ? payload.sentAt : Date.now()
-      }].slice(-150));
-      onInteraction(peer.id);
-    });
-    channel.subscribe(async (status) => {
-      if (!liveRef.current) return;
-      if (status === 'SUBSCRIBED') {
-        setRoomReady(true);
-        await channel.track({ memberId: current.id });
-        onInvite(peer);
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        setRoomReady(false);
-        setPeerReady(false);
-      }
-    });
-    return () => {
-      liveRef.current = false;
-      roomRef.current = null;
-      // Unmount disposes all chat state; never persist or log messages.
-      void db.removeChannel(channel);
-    };
-  }, [current.id, peer.id, onInteraction, onInvite]);
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages]);
-
-  const sendMessage = async (event: FormEvent) => {
-    event.preventDefault();
-    const body = text.trim();
-    if (!body || body.length > 2000 || !roomReady || !peerReady || !online || sending || !roomRef.current) return;
-    setSending(true); setError('');
-    const message: ChatMessage = { id: crypto.randomUUID(), fromId: current.id, text: body, sentAt: Date.now() };
-    try {
-      const ack = await roomRef.current.send({ type: 'broadcast', event: 'message', payload: message });
-      if (ack !== 'ok' || !liveRef.current) throw new Error('Could not send. Try again.');
-      setMessages((prev) => [...prev, message].slice(-150));
-      setText('');
-      onInteraction(peer.id);
-    } catch { if (liveRef.current) setError('Message was not sent. Check your connection.'); }
-    finally { if (liveRef.current) setSending(false); }
-  };
-
-  const connected = peerReady && roomReady && online;
-  return <main className="chat-page">
-    <header className="chat-desktop-header"><button className="chat-return" onClick={onBack}><ArrowLeft size={18}/> BACK TO PXL</button><div className="chat-top-brand">PXL <span>✦</span></div><span className="chat-header-right">TEMPORARY CHANNEL</span></header>
-    <div className="chat-stage"><div className="chat-phone">
-      <header className="phone-header">
-        <button type="button" className="phone-back" onClick={onBack} aria-label="Back to collection"><ArrowLeft size={21}/></button>
-        <div className="phone-avatar"><PixelCoin username={peer.username}/></div>
-        <div className="phone-peer"><strong>{peer.username}</strong><span>{connected ? 'here with you' : online ? 'waiting to connect…' : 'not available right now'}</span></div>
-        <span className={`header-presence ${online ? 'green' : ''}`} aria-label={online ? 'Active' : 'Inactive'} />
-      </header>
-      <div className="phone-chat-history">
-        <div className="privacy-toast"><Shield size={14}/><span>Ephemeral conversation. Messages are never saved to the app database.</span></div>
-        {messages.length === 0 && <div className="chat-placeholder"><div className="chat-placeholder-coin"><PixelCoin username={peer.username} size="large"/></div><h2>{peer.username}</h2><p>{connected ? 'Your conversation starts here. Say hello.' : 'Waiting for both characters to join this channel.'}</p><div className="sparkle-line">✦ &nbsp; ✧ &nbsp; ✦</div></div>}
-        <div className="bubbles" aria-live="polite">
-          {messages.map((message) => <div className={`message-row ${message.fromId === current.id ? 'sent' : 'received'}`} key={message.id}>
-            <div className="message-bubble"><span className="message-text">{message.text}</span><time>{new Date(message.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>
-          </div>)}
-          <div ref={bottomRef}/>
-        </div>
-      </div>
-      <div className="chat-compose-zone">
-        {error && <p className="chat-error" role="alert">{error}</p>}
-        <form className="compose-row" onSubmit={sendMessage}>
-          <input aria-label="Message" value={text} onChange={(e) => setText(e.target.value)} placeholder={connected ? 'Message…' : 'Waiting for connection…'} maxLength={2000} disabled={!connected || sending} autoComplete="off" />
-          <button type="submit" aria-label="Send message" disabled={!text.trim() || !connected || sending}><Send size={19}/></button>
-        </form>
-        <div className="compose-foot">LEAVE THIS CHAT TO ERASE ITS MESSAGES <ChevronRight size={11}/></div>
-      </div>
-    </div></div>
-  </main>;
-}

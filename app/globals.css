@@ -31,3 +31,67 @@ body{background-image:radial-gradient(circle at 51% -22%,rgba(82,136,193,.1),tra
 
 .auth-install-action{position:absolute;top:24px;right:28px;z-index:3}
 @media(max-width:650px){.auth-install-action{right:18px;top:27px}}
+
+/* PXL V1.3 — the roster is a game selection screen, not a conversation directory. */
+.collection-content{padding-top:clamp(20px,3vw,36px);padding-bottom:40px}
+.roster-grid{gap:16px}
+.character-slot{justify-content:center;min-height:238px;padding:21px 12px 18px;border-radius:16px}
+.character-slot:hover:not(:disabled){transform:translateY(-5px)}
+.character-slot:disabled{opacity:1}
+.character-self{background:linear-gradient(180deg,#243449,#172332)}
+.character-self .coin-wrap{opacity:.86}
+.coin-name{margin-top:9px;font-size:18px;letter-spacing:1.9px}
+.nav-you{margin-right:4px}
+.nav-you strong{margin-left:0}
+.game-toast{position:fixed;z-index:30;bottom:max(26px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);display:flex;align-items:center;gap:10px;background:#24384c;border:1px solid #486582;color:#e2effc;box-shadow:0 16px 45px #0008;padding:12px 16px;border-radius:13px;font-size:12px;font-weight:600;animation:toast-in .22s ease both}
+.game-toast-dot{background:#8093a5;width:9px;height:9px;border-radius:50%;flex-shrink:0}
+@keyframes toast-in{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(max-width:650px){.collection-content{padding-top:18px}.character-slot{min-height:196px;padding:13px 8px 13px}.coin-wrap{width:129px}.coin-name{font-size:16px;margin-top:6px}}
+@media(max-width:355px){.character-slot{min-height:184px}.coin-wrap{width:112px}}
+
+/* Chat composer: small, recognizable attachment + voice controls. */
+.chat-compose-zone{padding:11px 13px max(10px,env(safe-area-inset-bottom))}
+.compose-row{gap:7px}
+.compose-row .hidden-file{display:none}
+.compose-row .compose-attach,.compose-row .compose-mic,.compose-row .compose-send{display:grid;place-items:center;flex:0 0 auto;width:41px;height:41px;padding:0;border:0;border-radius:50%;color:#fff;background:#5288c1}
+.compose-row .compose-attach{background:#25394b;color:#abc7de}
+.compose-row .compose-attach:hover{background:#324b62}
+.compose-row .compose-mic.is-recording{background:#cc6573;animation:mic-pulse 1s ease-in-out infinite}
+.compose-row button:disabled{opacity:.45}
+@keyframes mic-pulse{50%{box-shadow:0 0 0 8px #cc657326}}
+.record-status{padding:8px 9px 12px;display:flex;align-items:center;gap:8px;font-size:12px;color:#e4d3d6}
+.record-dot{width:8px;height:8px;border-radius:50%;background:#fc6e79;animation:mic-pulse 1s ease-in-out infinite}
+.record-status button{margin-left:auto;background:transparent;border:0;color:#9ebee1;text-decoration:underline;font-size:12px}
+.message-bubble.message-media{max-width:87%;min-width:156px;align-items:center;gap:9px}
+.photo-token{display:flex;align-items:center;gap:9px;background:transparent;border:0;color:#eaf3fb;font-size:12px;font-weight:600;padding:3px 0;white-space:nowrap}
+.photo-token:disabled{opacity:.55}
+.voice-bubble{display:flex;align-items:center;gap:9px;min-width:158px;max-width:215px}
+.voice-play{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;color:#fff;background:#5288c1;border:0;border-radius:50%;padding:0}
+.voice-waves{display:flex;align-items:center;gap:2px;height:28px;flex:1;min-width:72px;overflow:hidden}
+.voice-waves span{background:#adcde6;display:block;width:2px;flex:0 0 2px;border-radius:3px}
+.voice-duration{white-space:nowrap;font-size:10px;color:#d6e6f3;font-variant-numeric:tabular-nums}
+.voice-bubble audio{display:none}
+
+/* Instagram-like media preview: timer selector only AFTER a photo is chosen. */
+.photo-preview-overlay,.photo-viewer-overlay{position:fixed;inset:0;z-index:75;background:#07101beF;display:flex;align-items:center;justify-content:center;padding:20px}
+.photo-preview-shell{display:flex;flex-direction:column;gap:12px;width:min(460px,100%);height:min(780px,calc(100svh - 40px));border:1px solid #415366;background:#111e2b;border-radius:19px;overflow:hidden;box-shadow:0 24px 65px #0008}
+.photo-preview-top{display:flex;align-items:center;justify-content:space-between;padding:13px 17px;color:#f4f6fa;font-size:13px;font-weight:600}
+.photo-preview-top>span:last-child{width:24px}
+.photo-preview-top button,.photo-viewer-top button{background:transparent;border:0;color:#f5f5f5;padding:3px}
+.photo-preview-image{object-fit:contain;min-height:0;min-width:0;width:100%;flex:1;background:#09131f;user-select:none}
+.photo-preview-actions{display:flex;align-items:center;justify-content:space-between;padding:4px 17px 17px}
+.photo-timer-control{position:relative}
+.photo-timer-button{display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:22px;background:#263a4b;border:1px solid #43617b;color:#fff;font-size:12px;font-weight:700}
+.photo-duration-menu{position:absolute;bottom:calc(100% + 9px);left:0;width:106px;border:1px solid #49617a;border-radius:12px;padding:5px;background:#233547;box-shadow:0 8px 25px #0007;display:flex;flex-direction:column;z-index:4}
+.photo-duration-menu button{display:flex;align-items:center;justify-content:space-between;min-height:35px;padding:7px 10px;color:#e8f1fa;background:transparent;border:0;border-radius:7px;font-size:12px}
+.photo-duration-menu button:hover{background:#3a536b}
+.photo-send-button{display:flex;align-items:center;gap:8px;border:0;border-radius:22px;padding:10px 17px;background:#5288c1;color:#fff;font-weight:700;font-size:12px}
+.photo-send-button:disabled{opacity:.45}
+.photo-viewer-overlay{z-index:90;background:#020609;flex-direction:column;gap:15px}
+.photo-viewer-overlay img{object-fit:contain;max-width:100%;max-height:calc(100svh - 100px);min-height:0;min-width:0;user-select:none;-webkit-user-select:none}
+.photo-viewer-top{display:flex;align-items:center;justify-content:space-between;width:min(90vw,600px);color:#fff}
+.photo-viewer-top span{display:flex;align-items:center;gap:8px;background:#2b3640;border-radius:22px;padding:8px 13px;font-size:13px;font-weight:700}
+@media(max-width:650px){.photo-preview-overlay{padding:0}.photo-preview-shell{width:100%;height:100svh;border:0;border-radius:0}.photo-preview-top{padding-top:max(13px,env(safe-area-inset-top))}.photo-preview-actions{padding-bottom:max(18px,env(safe-area-inset-bottom))}.photo-viewer-overlay{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){.compose-row .compose-mic.is-recording,.record-dot,.game-toast{animation:none}}
+
+.compose-row .compose-mic{touch-action:none;user-select:none;-webkit-user-select:none}

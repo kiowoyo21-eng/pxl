@@ -13,13 +13,50 @@ test('SQL has no message-history table and requires RLS for identities and sessi
   assert.doesNotMatch(sql, /create table[^;]*(?:chat_messages|conversation_messages)/i);
 });
 
-test('chat uses Realtime Broadcast and disappears on component unmount', () => {
-  const code = file('components/collection-app.tsx');
-  assert.match(code, /event: 'message'/);
-  assert.match(code, /type: 'broadcast'/);
-  assert.match(code, /setActivePeer\(null\)/);
-  assert.match(code, /removeChannel\(channel\)/);
-  assert.doesNotMatch(code, /localStorage|sessionStorage|indexedDB|sendBeacon|console\.log/);
+test('chat uses Realtime Broadcast, RAM-only media transfer and cleanup on unmount', () => {
+  const roster = file('components/collection-app.tsx');
+  const chat = file('components/ephemeral-chat.tsx');
+  const media = file('lib/peer-media.ts');
+  assert.match(chat, /event: 'message'/);
+  assert.match(chat, /type: 'broadcast'/);
+  assert.match(roster, /setActivePeer\(null\)/);
+  assert.match(chat, /removeChannel\(channel\)/);
+  assert.match(chat, /URL\.revokeObjectURL/);
+  assert.match(chat, /getUserMedia/);
+  assert.match(chat, /MediaRecorder/);
+  assert.match(media, /RTCPeerConnection/);
+  assert.match(media, /createDataChannel/);
+  assert.match(media, /CHUNK_BYTES = 16 \* 1024/);
+  assert.doesNotMatch(roster + chat + media, /localStorage|sessionStorage|indexedDB|sendBeacon|console\.log/);
+});
+
+test('game UI has no marketing or token labels, and offline coins notify', () => {
+  const roster = file('components/collection-app.tsx');
+  assert.doesNotMatch(roster, /CHARACTER ARCHIVE|VOL\. 01|COLLECTOR|NO CHAT HISTORY|CHARACTER TOKEN|YOUR TOKEN|\/ TOKEN|Choose your/);
+  assert.match(roster, /setNotice\(\`\$\{member\.username\}/);
+  assert.match(roster, /role="status"/);
+  assert.match(roster, /disabled=\{isSelf\}/);
+});
+
+test('photo timers are only in post-selection preview, with 3s 10s 20s and one-view expiry', () => {
+  const chat = file('components/ephemeral-chat.tsx');
+  const media = file('lib/peer-media.ts');
+  assert.match(chat, /photo-preview-overlay/);
+  assert.match(chat, /photo-duration-menu/);
+  assert.match(chat, /\(\[3, 10, 20\] as const\)/);
+  assert.match(chat, /const \[duration, setDuration\] = useState<PhotoDuration>\(10\)/);
+  assert.match(chat, /expirePhoto\(viewing\.id, true\)/);
+  assert.match(media, /validPhotoDuration/);
+  assert.doesNotMatch(media, /supabase\.storage|\.from\('messages'\)/);
+});
+
+test('voice is replayable while chat exists, 60s maximum and no audio database', () => {
+  const chat = file('components/ephemeral-chat.tsx');
+  assert.match(chat, /MAX_RECORDING_MS = 60_000/);
+  assert.match(chat, /<VoiceBubble/);
+  assert.match(chat, /recorder\.start\(250\)/);
+  assert.match(chat, /recorderRef\.current\.stop\(\)/);
+  assert.match(chat, /streamRef\.current\?\.getTracks\(\)/);
 });
 
 test('account credentials never flow into browser Supabase client', () => {

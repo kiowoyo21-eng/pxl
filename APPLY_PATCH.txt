@@ -1,0 +1,16 @@
+PXL V1.3 targeted patch — install into your PXL repository root.
+
+This ZIP contains ONLY the files changed by the consolidated UI/media update.
+No existing Supabase migration or auth/session logic is replaced.
+
+Apply:
+1. Extract this archive over the root of your PXL project, preserving directory names.
+2. Review git diff; the two new files are components/ephemeral-chat.tsx and lib/peer-media.ts.
+3. With npm packages installed: npm test && npm run typecheck && npm run build.
+4. Commit/push from your account with write access, or use GitHub Desktop.
+5. Vercel automatically builds only if the repo has an active deployment integration.
+
+The GitHub connector currently has read-only access, so no remote commit was made.
+No Supabase/Vercel account or database was modified.
+WebRTC media needs both parties in the chat online; STUN-only can fail on some networks.
+See QA_REPORT_V1_3.md for verification limits and warnings.
