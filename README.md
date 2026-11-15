@@ -4,13 +4,17 @@
 
 **This is a ZIP handoff.** This revision does not write to GitHub, Vercel, or Supabase. It can be installed in your existing PXL repository or another account. The ZIP contains no live credentials.
 
+## PXL V1.5 — offline character invitations
+
+See **README_V1_5_PUSH.md** for the 100 randomized game invitations, optional Web Push opt-in, SQL migration, VAPID configuration and privacy limitations. The PWA remains network-only for chat and does not cache messages.
+
 ## PXL V1.4 — camera and chat continuity fixes
 
 - **Rebranded as PXL** across login, gallery, chat, error screen, web metadata, browser title, and visual preview.
 - **Installable web app manifest** at `app/manifest.ts`, `display: standalone`, scope `/`, dark theme `#0e1621`.
 - **Pixel character inside a metallic PXL coin icon** in 192×192, 512×512, 512×512 maskable, 180×180 Apple touch, and favicon sizes.
 - **Install PXL** button on the sign-in screen and collection navigation. Uses native Chrome/Edge prompts when offered, with Safari/iOS and fallback instructions.
-- **Service worker** (`public/sw.js`) for install lifecycle ONLY. It does not intercept requests, pre-cache an offline shell, save responses, store messages, register background sync, or deliver notifications. No cached chat data.
+- **Service worker** (`public/sw.js`) for install lifecycle and V1.5 game invitation notifications. It does not intercept fetch requests, pre-cache an offline shell, save responses, store messages, or register background sync. No cached chat data.
 - Standalone iPhone/iPad home-screen metadata; responsive mobile chat fills the screen. Login remains cookie-based; chat state remains RAM-only.
 
 ### Installing PXL on a phone or desktop
@@ -22,7 +26,7 @@ After deployment to **HTTPS**, open the website:
 - **Desktop / Chrome or Edge:** use **Install PXL** when the prompt is supported, or the browser's Install icon/menu.
 - **Locally:** `http://localhost:3000` works for testing. Other devices on your LAN generally need HTTPS to use service workers and install reliably.
 
-**Offline behavior:** PXL requires an active connection for login, loading the roster, Realtime Presence, and live chat. **No offline chat, chat queue, chat caching, or notifications.** A PWA can still be installed even if live app functionality requires internet. If the browser itself retains HTTP or operational traces, a service worker cannot guarantee their erasure; this app sets `Cache-Control: no-store` and does not add its own caches.
+**Offline behavior:** PXL requires an active connection for login, loading the roster, Realtime Presence, and live chat. **No offline chat, chat queue, chat caching, or offline chat delivery. Push invitations are supported only when opted in.** A PWA can still be installed even if live app functionality requires internet. If the browser itself retains HTTP or operational traces, a service worker cannot guarantee their erasure; this app sets `Cache-Control: no-store` and does not add its own caches.
 
 ### Core features retained from V1.3
 

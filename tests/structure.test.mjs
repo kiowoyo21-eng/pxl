@@ -33,7 +33,7 @@ test('chat uses Realtime Broadcast, RAM-only media transfer and cleanup on unmou
 test('game UI has no marketing or token labels, and offline coins notify', () => {
   const roster = file('components/collection-app.tsx');
   assert.doesNotMatch(roster, /CHARACTER ARCHIVE|VOL\. 01|COLLECTOR|NO CHAT HISTORY|CHARACTER TOKEN|YOUR TOKEN|\/ TOKEN|Choose your/);
-  assert.match(roster, /setNotice\(\`\$\{member\.username\}/);
+  assert.match(roster, /setNotice\(\`Inviting \$\{member\.username\}/);
   assert.match(roster, /role="status"/);
   assert.match(roster, /members\.filter\(\(member\) => member\.id !== current\?\.id\)/);
   assert.doesNotMatch(roster, /<span className="self-marker">YOU<\/span>/);

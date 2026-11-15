@@ -1,0 +1,104 @@
+PXL — 100 randomized invitation messages
+
+001. LYD is inviting you to explore.
+002. LYD found a new adventure for you.
+003. LYD wants you to join the quest.
+004. LYD opened a portal your way.
+005. LYD is waiting at the pixel gate.
+006. LYD has a little adventure in mind.
+007. LYD sent a signal from the arcade.
+008. LYD is calling you into the game.
+009. LYD saved a spot for you.
+010. LYD wants to unlock a new chapter with you.
+011. LYD spotted a path worth exploring.
+012. LYD found a world you might like.
+013. LYD is inviting you into their party.
+014. LYD is looking for a co-adventurer.
+015. LYD discovered a secret doorway.
+016. LYD is ready for another round.
+017. LYD is looking for their next teammate.
+018. LYD is inviting you into the pixel world.
+019. LYD has a quest with your name on it.
+020. LYD just lit up the adventure map.
+021. LYD is sending a friendly summon.
+022. LYD wants to explore beyond the map.
+023. LYD opened a new level for you.
+024. LYD wants to make a new memory.
+025. LYD is waving from the game lobby.
+026. LYD found something beyond the horizon.
+027. LYD is inviting you to the next level.
+028. LYD has a tiny mission for you.
+029. LYD found an extra seat on the airship.
+030. LYD is ready to roll into a new realm.
+031. LYD is inviting you to a side quest.
+032. LYD wants to wander the pixel streets.
+033. LYD discovered an unmarked route.
+034. LYD is waiting near the starting point.
+035. LYD would like you on their team.
+036. LYD sent you a virtual high-five.
+037. LYD wants to uncover the next secret.
+038. LYD is curious where this path leads.
+039. LYD is inviting you into a new scene.
+040. LYD has a new checkpoint in sight.
+041. LYD just unlocked an invitation for you.
+042. LYD is gathering a tiny party.
+043. LYD found an unexplored corner of PXL.
+044. LYD is inviting you under the pixel stars.
+045. LYD is waiting on the other side of the gate.
+046. LYD wants you to tag along for a quest.
+047. LYD just rolled out the welcome mat.
+048. LYD is calling from the next checkpoint.
+049. LYD found a side path worth taking.
+050. LYD is inviting you to roam awhile.
+051. LYD has a fresh adventure ready.
+052. LYD is sending an arcade-style hello.
+053. LYD found a place to start something fun.
+054. LYD is looking for a quest partner.
+055. LYD would love a fellow explorer.
+056. LYD discovered a curious little portal.
+057. LYD wants to meet at the pixel plaza.
+058. LYD has a world to show you.
+059. LYD is sending a signal through PXL.
+060. LYD hopes you can join the next round.
+061. LYD found a spark of adventure.
+062. LYD is inviting you to start a new quest.
+063. LYD has an adventure waiting at spawn.
+064. LYD is calling across the digital map.
+065. LYD wants a companion for the journey.
+066. LYD found a new route through the stars.
+067. LYD is ready for a playful detour.
+068. LYD is inviting you to the pixel arcade.
+069. LYD wants to unlock a moment together.
+070. LYD has something fun to discover.
+071. LYD is opening the next chapter.
+072. LYD thinks you would like this quest.
+073. LYD is sending a cheerful game invite.
+074. LYD has a new adventure on the board.
+075. LYD is inviting you beyond the lobby.
+076. LYD is waiting at the adventure hub.
+077. LYD has room for one more explorer.
+078. LYD found a surprise around the corner.
+079. LYD is inviting you across the map.
+080. LYD wants to start a fresh little story.
+081. LYD is inviting you into a hidden level.
+082. LYD just discovered a bright new path.
+083. LYD is asking you to join the expedition.
+084. LYD has a new game plan to share.
+085. LYD sent you an invitation from PXL.
+086. LYD wants to check out the next world.
+087. LYD is waiting by the pixel campfire.
+088. LYD has a playful quest in store.
+089. LYD is inviting you to find the next key.
+090. LYD found a shortcut to something fun.
+091. LYD is ready to explore together.
+092. LYD has a new portal to cross.
+093. LYD is hoping you join the adventure.
+094. LYD has another level in mind.
+095. LYD is inviting you to a cozy quest.
+096. LYD is waiting for a partner in PXL.
+097. LYD just marked a spot on the map.
+098. LYD discovered a tiny secret for two.
+099. LYD wants to set out on a new journey.
+100. LYD is inviting you to play along.
+
+The app replaces the example username LYD with the authenticated sender username.

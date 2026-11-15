@@ -113,3 +113,11 @@ body{background-image:radial-gradient(circle at 51% -22%,rgba(82,136,193,.1),tra
 .camera-shutter-button span{width:46px;height:46px;border-radius:50%;background:#f5f5f5}
 .camera-action-spacer{width:90px}
 @media(max-width:650px){.camera-capture-overlay{padding:0}.camera-capture-shell{width:100%;height:100svh;border:0;border-radius:0}.camera-capture-top{padding-top:max(14px,env(safe-area-inset-top))}}
+
+/* Discreet game invitation toggle — no chat marketing labels. */
+.push-control{position:relative;display:flex;align-items:center}
+.push-toggle{display:inline-flex;align-items:center;gap:7px;color:#d8e6f4;background:#23364a;border:1px solid #354c63;padding:8px 11px;border-radius:11px;font-weight:600;font-size:10px;font-family:inherit;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
+.push-toggle:disabled{opacity:.6;cursor:not-allowed}
+.push-toggle:hover:not(:disabled){background:#304860}
+.push-hint{position:absolute;right:0;top:calc(100% + 8px);width:min(250px,70vw);z-index:30;background:#253a4e;color:#f5f5f5;border:1px solid #435e75;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.4;box-shadow:0 10px 22px #0006}
+@media(max-width:640px){.push-toggle{padding:9px}.push-toggle span{display:none}}

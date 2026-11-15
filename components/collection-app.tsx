@@ -8,6 +8,7 @@ import { getBrowserRealtime } from '@/lib/supabase-browser';
 import type { Member } from '@/lib/types';
 import PixelCoin from './pixel-coin';
 import PwaInstallButton from './pwa-install-button';
+import PushInvitesButton from './push-invites-button';
 import EphemeralChat from './ephemeral-chat';
 
 type UiStage = 'name' | 'pin-login' | 'pin-register';
@@ -155,9 +156,26 @@ export default function CollectionApp() {
     // Re-evaluate only on wall return, not with every message; collection coins never jump mid-browse.
   }, [members, current?.id, reorderVersion]);
 
-  const choosePeer = (member: Member) => {
+  const choosePeer = async (member: Member) => {
     if (!current || member.id === current.id) return;
-    if (!onlineIds.has(member.id)) { setNotice(`${member.username} isn't around right now.`); return; }
+    if (!onlineIds.has(member.id)) {
+      setNotice(`Inviting ${member.username} to explore…`);
+      try {
+        const response = await getJson<{ status: string }>('/api/push/invite', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetId: member.id })
+        });
+        setNotice(response.status === 'sent'
+          ? `Invitation sent to ${member.username}.`
+          : `${member.username} hasn't enabled invites yet.`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        setNotice(message.includes('Please try again')
+          ? `${member.username} may have received an invite recently.`
+          : `Couldn't invite ${member.username}. Try again later.`);
+      }
+      return;
+    }
     setInvitation(null);
     setActivePeer(member);
     if (window.location.hash !== '#chat') window.history.pushState({ collectionChat: true }, '', '#chat');
@@ -180,6 +198,20 @@ export default function CollectionApp() {
 
   const logOut = async () => {
     try {
+      // Disconnect this device from game invites before removing the login session.
+      // Subscription is server-side device metadata, never chat content.
+      if ('serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
+        const reg = await navigator.serviceWorker.getRegistration('/');
+        const sub = await reg?.pushManager?.getSubscription();
+        if (sub) {
+          const detached = await fetch('/api/push/subscription', {
+            method: 'DELETE', credentials: 'same-origin', cache: 'no-store',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription: sub.toJSON() })
+          });
+          if (detached.ok) await sub.unsubscribe();
+        }
+      }
       await getJson('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       setActivePeer(null);
       setCurrent(null);
@@ -213,6 +245,7 @@ export default function CollectionApp() {
       </div>
       <div className="nav-actions">
         <PwaInstallButton />
+        <PushInvitesButton />
         <span className="nav-you" title="Current character"><strong>{current.username}</strong></span>
         <button type="button" className="icon-action" aria-label="Refresh collection" title="Refresh collection" onClick={manualRefresh} disabled={refreshing}><RefreshCw size={17} className={refreshing ? 'spin' : ''}/></button>
         <button type="button" className="icon-action" aria-label="Log out" title="Log out" onClick={logOut}><LogOut size={17}/></button>
@@ -228,7 +261,7 @@ export default function CollectionApp() {
           return <button type="button" key={member.id}
             className={`character-slot${active ? ' can-select' : ''}`}
             onClick={() => choosePeer(member)}
-            aria-label={`${member.username}, ${active ? 'available to chat' : 'not available'}`}>
+            aria-label={`${member.username}, ${active ? 'available to chat' : 'tap to send an invite'}`}>
             <PixelCoin username={member.username} online={active}/>
             <div className="coin-name">{member.username}</div>
           </button>;

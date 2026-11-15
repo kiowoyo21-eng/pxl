@@ -1,8 +1,8 @@
 {
   "name": "pxl-pwa",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
-  "description": "PXL — installable pixel-coin RPG roster with ephemeral text, timed photos and voice chat",
+  "description": "PXL \u2014 installable pixel-coin RPG roster with ephemeral text, timed photos and voice chat",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -18,7 +18,8 @@
     "next": "16.4.6",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "server-only": "0.0.1"
+    "server-only": "0.0.1",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
     "@types/node": "22.15.30",
@@ -26,7 +27,8 @@
     "@types/react-dom": "19.2.2",
     "eslint": "9.39.1",
     "eslint-config-next": "16.4.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@types/web-push": "3.6.4"
   },
   "engines": {
     "node": ">=20.9.0"

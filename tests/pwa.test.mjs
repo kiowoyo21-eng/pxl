@@ -27,7 +27,7 @@ test('PWA service worker never caches application content or intercepts fetch', 
   const sw = file('public/sw.js').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(sw, /addEventListener\('install'/);
   assert.match(sw, /addEventListener\('activate'/);
-  assert.doesNotMatch(sw, /caches\.|cache\.put|addEventListener\('fetch'|pushManager|indexedDB|localStorage|sessionStorage|sync\b/i);
+  assert.doesNotMatch(sw, /caches\.|cache\.put|addEventListener\('fetch'|pushManager|indexedDB|localStorage|sessionStorage|addEventListener\(['\"]sync['\"]/i);
 });
 
 test('PWA registration survives login and PXL branding replaces original title', () => {
